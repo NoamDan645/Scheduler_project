@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "sortlist.h": "c",
+        "tasker.h": "c"
+    }
+}

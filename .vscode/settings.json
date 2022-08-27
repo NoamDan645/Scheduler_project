@@ -1,0 +1,17 @@
+{
+    "files.associations": {
+        "tasker.h": "c",
+        "stddef.h": "c",
+        "uid.h": "c",
+        "time.h": "c",
+        "scheduler.h": "c",
+        "cstdio": "c",
+        "pqueue.h": "c",
+        "clock_t.h": "c",
+        "limits": "c",
+        "*.tcc": "c",
+        "type_traits": "c",
+        "dynamic_vector.h": "c",
+        "heap.h": "c"
+    }
+}
