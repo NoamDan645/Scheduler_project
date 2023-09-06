@@ -5,7 +5,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h> /* memcpy */
-
 #include "heap.h"
 #include "dynamic_vector.h"
 
@@ -43,7 +42,10 @@ static void VectorSwap(dynamic_vector_ty *vector, size_t index1, size_t index2)
     void *data1 = VectorGetAccessToElement(vector, index1);
     void *data2 = VectorGetAccessToElement(vector, index2);
 
-    SwapMem(data1, data2, sizeof(size_t));
+    size_t temp_data = 0;
+    temp_data = *(size_t *)data1;
+    *(size_t *)data1 = *(size_t *)data2;
+    *(size_t *)data2 = temp_data;
 }
 
 static void HeapifyDown(heap_ty *heap, size_t index)
@@ -54,23 +56,46 @@ static void HeapifyDown(heap_ty *heap, size_t index)
     compare_ty cmp = heap->heap_cmp;
     void *right = NULL;
     void *left = NULL;
-    void *data_to_move = VectorGetAccessToElement(vector, index);
+    void *data_to_move = NULL;
 
     assert(NULL != heap);
 
-    while (RIGHT(index) <= last_index)
+    data_to_move = VectorGetAccessToElement(vector, index);
+    right = VectorGetAccessToElement(vector, RIGHT(index));
+    left = VectorGetAccessToElement(vector, LEFT(index));
+
+    while ((-1 == cmp(data_to_move, right)) || (-1 == cmp(data_to_move, left)))
+    {
+
+        if (1 == cmp(left, right))
+        {
+            VectorSwap(vector, index, LEFT(index));
+            PrintHeap(heap);
+            index = LEFT(index);
+
+        }
+        else
+        {
+            printf("LEFT(index) = %d",LEFT(index));
+            printf("RIGHT(index) = %d",RIGHT(index));
+            printf("index = %d",index);
+
+        }
+    }
+
+    /* while (RIGHT(index) <= last_index)
     {
         right = VectorGetAccessToElement(vector, RIGHT(index));
         left = VectorGetAccessToElement(vector, LEFT(index));
 
         if (0 == cmp(data_to_move, left) || 0 == cmp(data_to_move, right))
         {
-            if (1 == cmp(right, left)) /*right > laft */
+            if (1 == cmp(right, left))
             {
                 VectorSwap(vector, index, RIGHT(index));
                 index = RIGHT(index);
             }
-            else /*right < laft */
+            else
             {
                 VectorSwap(vector, index, LEFT(index));
                 index = LEFT(index);
@@ -82,7 +107,7 @@ static void HeapifyDown(heap_ty *heap, size_t index)
         }
 
         data_to_move = VectorGetAccessToElement(vector, index);
-    }
+    } */
 }
 
 static void HeapifyUp(heap_ty *heap, void *data)
@@ -99,7 +124,7 @@ static void HeapifyUp(heap_ty *heap, void *data)
 
     cmp_data = VectorGetAccessToElement(vector, PARRENT(index));
 
-    while (0 < cmp(data, cmp_data))
+    while (0 < cmp(data, cmp_data)) /*if to push > parent do swap*/
     {
         VectorSwap(vector, index, PARRENT(index));
 
@@ -188,7 +213,15 @@ void HEAPPop(heap_ty *heap)
 
     VectorPopBack(heap->vector);
 
+    printf("after popBack\n");
+
+    PrintHeap(heap);
+
     HeapifyDown(heap, 0);
+
+    printf("after HeapifyDown function\n");
+
+    PrintHeap(heap);
 }
 
 /****************************** Peek ********************************/
@@ -273,10 +306,32 @@ void PrintHeap(heap_ty *heap)
     size_t i = 0;
     void *data = NULL;
 
+    assert(arr_size != 0);
+
     for (i = 0; i < arr_size; i++)
     {
         data = VectorGetAccessToElement(heap->vector, i);
-        printf("%d | ", *(int *)((size_t *)data));
+        printf("index [%lu] = %d\n", i, *(int *)((size_t *)data));
     }
-    printf("\n");
+}
+
+void PrintHeapTree(heap_ty *heap)
+{
+    size_t arr_size = HEAPSize(heap);
+    size_t i, j = 0;
+    void *data = NULL;
+    size_t spase = arr_size;
+    size_t count = arr_size - spase;
+
+    for (i = 0; i < arr_size; i++)
+    {
+        data = VectorGetAccessToElement(heap->vector, i);
+
+        for (j = 0; j < spase; j++)
+        {
+            printf(" ");
+            spase /= 2;
+        }
+        printf("%d\n", *(int *)((size_t *)data));
+    }
 }

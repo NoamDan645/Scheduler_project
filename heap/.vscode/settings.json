@@ -32,6 +32,10 @@
   ],
   "files.associations": {
     "dynamic_vector.h": "c",
-    "heap.h": "c"
+    "heap.h": "c",
+    "cstddef": "c",
+    "cstdio": "c",
+    "type_traits": "c",
+    "typeinfo": "c"
   }
 }

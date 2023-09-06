@@ -29,6 +29,8 @@
     "**/.vscode/**"
   ],
   "files.associations": {
-    "time.h": "c"
+    "time.h": "c",
+    "tasker.h": "c",
+    "uid.h": "c"
   }
 }

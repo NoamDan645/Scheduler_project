@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/home/noam/git/ds/heap",
-      "program": "/home/noam/git/ds/heap/heap_test.Debug.out",
+      "cwd": "/home/noam/GitHub/projects/scheduler/heap",
+      "program": "/home/noam/GitHub/projects/scheduler/heap/heap.Debug.out",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

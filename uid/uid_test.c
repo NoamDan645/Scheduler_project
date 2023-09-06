@@ -7,60 +7,39 @@
 #include <unistd.h> /*sleep*/
 #include "uid.h"
 
-#define RESET   "\033[0m"        /* Reset colour */
-#define RED     "\033[31m"       /* Red */
-#define GREEN   "\033[32m"      /* Green */
+#define TEST(name, actual, expected)\
+    printf("%s: %s\n\n", name, actual == expected ? GREEN"Pass"WHITE : RED"Fail"WHITE)
 
+#define RED "\033[1;31m"
+#define GREEN "\033[1;32m"
+#define CYAN "\033[1;36m"
+#define WHITE "\033[0m"
 
-void TestUid(void)
-{
-	uid_ty id1; 
-	uid_ty id2;
-	
-	id1 = GetUID();
-	if (!UIDIsSame(id1, UID_INVALID))
-	{
-		printf (GREEN "Valid UID created for id1:\n");
-		printf (" UID counter is: %lu\n",id1.counter);
-		printf (" UID timestamp is: %ld\n",id1.timestamp);
-		printf (" UID pid is: %d\n",id1.pid);
-	}	
-	else
-	{
-		printf (RED "InValid UID created for id1:\n");
-	}
-
-	sleep(2);
- 
-	id2 = GetUID();
-	if (!UIDIsSame(id2, UID_INVALID))
-	{
-		printf (GREEN "Valid UID created for id2:\n");
-		printf (" UID counter is: %lu\n",id2.counter);
-		printf (" UID timestamp is: %ld\n",id2.timestamp);
-		printf (" UID pid is: %d\n",id2.pid);
-	}	
-	else
-	{
-		printf (RED "InValid UID created for id2:\n");
-	}
-
-	if (!UIDIsSame(id1,id2))
-	{
-		printf (GREEN "id1 and id2 are not the same\n");
-	}
-	else
-	{
-		printf (RED "id1 and id2 ARE the same!!!\n");
-	}
-
-	printf(RESET);
-}
+void TestUid(void);
 
 int main(void)
 {
 	TestUid();
-
 	return 0;
 }
 
+
+void TestUid(void)
+{
+	uid_ty first; 
+	uid_ty seconed; 
+	uid_ty third; 
+
+	first = createUid();
+    seconed = createUid();
+    third = createUid();
+
+	TEST(" create + is same ", UIDIsSame(first, first) , 1); 
+
+	 printf("first: counter = %lu \ntime = %ld\npid =%d\n", first.counter, first.timestamp, first.pid);
+    printf("seconed: counter = %lu \ntime = %ld\npid =%d\n", seconed.counter, seconed.timestamp, seconed.pid);
+    printf("third: counter = %lu \ntime = %ld\npid =%d\n", third.counter, third.timestamp, third.pid);
+    
+    printf(CYAN"\tEnd Test \n\n"WHITE); 
+	
+}

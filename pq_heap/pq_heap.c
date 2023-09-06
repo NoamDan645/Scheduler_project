@@ -1,8 +1,8 @@
 #include <stdio.h>  /*printf */
 #include <stdlib.h> /*malloc*/
+#include <assert.h> /* assert */
 #include "heap.h"   /*heap */
 #include "pqueue.h" /**/
-#include <assert.h> /* assert */
 
 struct pqueue
 {

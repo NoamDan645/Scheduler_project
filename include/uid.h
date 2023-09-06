@@ -13,17 +13,17 @@
 #include <time.h>   /*time_t*/
 #include <sys/types.h>    /*pid_t*/
 
-typedef struct
+typedef struct 
 {
-    unsigned long counter;
-    time_t timestamp;
     pid_t pid;
+    size_t counter;
+    time_t timestamp;
 } uid_ty;
 
 extern const uid_ty UID_INVALID; /*to compare with UID*/
 
 /*Return UID number, on failure return UID_INVALID */
-uid_ty GetUID(void);
+uid_ty createUid(void);
 
 /*return 1 if two UUID are same and 0 otherwise*/
 int UIDIsSame(uid_ty uid1, uid_ty uid2);
