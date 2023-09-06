@@ -17,7 +17,6 @@ struct dynamic_vector
     size_t size_of_element;
 };
 
-/*  Auxiliary functions */
 static int VectorIsFull(dynamic_vector_ty *vector)
 {
 	return vector->size == vector->capacity;
