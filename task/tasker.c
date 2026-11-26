@@ -1,90 +1,106 @@
-#include <stdlib.h>
-#include <assert.h>
-#include <time.h>
-#include <stdio.h>
-#include "tasker.h"
-#include "uid.h"
+/*************************************************************
+ * Task
+ *
+ * Author: Noam Hadad
+ ******************************************************************/
 
-/* struct task
+#include <assert.h> /* assert */
+#include <stdlib.h> /* malloc, free */
+
+#include "tasker.h"
+
+struct task
 {
+	task_ptr_ty func;
 	void *param;
 	uid_ty uid;
-	task_ptr_ty func;
 	size_t interval;
 	time_t next_call;
-	time_t time_to_run;
 };
- */
+
 task_ty *TaskerCreate(task_ptr_ty func_task, void *param, size_t interval)
 {
 	task_ty *task = NULL;
-	assert(param);
+	time_t now = time(NULL);
 
-	if (NULL == (task = (task_ty *)malloc(sizeof(task_ty))))
+	assert(NULL != func_task);
+
+	if ((time_t)-1 == now)
+	{
 		return NULL;
+	}
+
+	task = (task_ty *)malloc(sizeof(task_ty));
+	if (NULL == task)
+	{
+		return NULL;
+	}
 
 	task->uid = createUid();
+	if (UIDIsSame(task->uid, UID_INVALID))
+	{
+		free(task);
+		return NULL;
+	}
+
 	task->func = func_task;
 	task->param = param;
-	task->time_to_run = time(NULL) + interval;
 	task->interval = interval;
+	task->next_call = now + (time_t)interval;
 
 	return task;
 }
 
 void TaskerDestroy(task_ty *task)
 {
-	if (NULL != task)
-	{
-		free(task);
-		task = NULL;
-	}
-}
-
-time_t TaskerGetNextCall(task_ty *task)
-{
-	assert(task);
-	return task->next_call;
+	free(task);
 }
 
 int TaskerExecute(task_ty *task)
 {
-	assert(task);
+	assert(NULL != task);
 
-	return (task->func(task->param));
+	return task->func(task->param);
 }
 
-uid_ty TaskerGetTaskUID(task_ty *task)
+uid_ty TaskerGetTaskUID(const task_ty *task)
 {
-	assert(task);
+	assert(NULL != task);
+
 	return task->uid;
 }
-unsigned int TaskerDiffTime(task_ty *task1, task_ty *task2)
-{
-	assert(task1);
-	assert(task2);
 
-	return (difftime(task1->next_call, task2->next_call));
+int TaskerUIDIsMatch(const task_ty *task, uid_ty uid)
+{
+	assert(NULL != task);
+
+	return UIDIsSame(task->uid, uid);
 }
 
-int TaskerUIDIsMatch(task_ty *task, uid_ty uid)
+time_t TaskerGetNextCall(const task_ty *task)
 {
-	assert(task);
+	assert(NULL != task);
 
-	return (UIDIsSame(task->uid, uid));
+	return task->next_call;
 }
 
-void TaskUpdateTimeToRun(task_ty *task)
+void TaskUpdateTimeToRun(task_ty *task, time_t now)
 {
-	assert(task);
+	assert(NULL != task);
 
-	task->time_to_run = time(NULL) + task->interval;
+	task->next_call = now + (time_t)task->interval;
 }
 
 int TaskIsBefore(const void *task1, const void *task2)
 {
-	assert(task1);
-	assert(task2);
-	
-	return (((task_ty *)task1)->time_to_run - ((task_ty *)task2)->time_to_run) > 0 ? 1 : -1;
+	time_t t1 = 0;
+	time_t t2 = 0;
+
+	assert(NULL != task1);
+	assert(NULL != task2);
+
+	t1 = ((const task_ty *)task1)->next_call;
+	t2 = ((const task_ty *)task2)->next_call;
+
+	return (t1 < t2) - (t1 > t2);
 }

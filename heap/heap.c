@@ -1,337 +1,216 @@
+/*************************************************************
+ * Binary heap
+ *
+ * Author: Noam Hadad
+ *
+ * Stores pointers to user data in a dynamic vector. The element with
+ * the highest priority (compare(a, b) > 0 means a before b) is at the
+ * root.
+ ******************************************************************/
 
+#include <assert.h> /* assert */
+#include <stdlib.h> /* malloc, free */
 
-#include <stddef.h> /*size_t*/
-#include <stdlib.h>
-#include <assert.h>
-#include <stdio.h>
-#include <string.h> /* memcpy */
-#include "heap.h"
 #include "dynamic_vector.h"
+#include "heap.h"
 
-/*****************************************************************************/
+#define LEFT(i) ((2 * (i)) + 1)
+#define RIGHT(i) ((2 * (i)) + 2)
+#define PARENT(i) (((i) - 1) / 2)
+
+#define INITIAL_CAPACITY 16
+
 struct heap
 {
-    dynamic_vector_ty *vector;
-    compare_ty heap_cmp;
+	dynamic_vector_ty *vector;
+	compare_ty compare;
 };
-/****************************** define and inner function ****************************/
 
-#define RIGHT(a) ((2 * a) + 2)
-#define LEFT(a) ((2 * a) + 1)
-#define PARRENT(a) (((int)a - 1) / 2)
+/****************************** helpers ******************************/
 
-#define CAPACITY 20
-
-static void SwapMem(void *data1, void *data2, int size)
+static void *GetData(const heap_ty *heap, size_t index)
 {
-    char *buffer = (char *)malloc((size_t)size);
-    if (NULL == buffer)
-    {
-        return;
-    }
-
-    memcpy(buffer, data1, size);
-    memcpy(data1, data2, size);
-    memcpy(data2, buffer, size);
-
-    free(buffer);
+	return *(void **)VectorGetAccessToElement(heap->vector, index);
 }
-static void VectorSwap(dynamic_vector_ty *vector, size_t index1, size_t index2)
+
+static void Swap(heap_ty *heap, size_t i, size_t j)
 {
+	void **a = (void **)VectorGetAccessToElement(heap->vector, i);
+	void **b = (void **)VectorGetAccessToElement(heap->vector, j);
+	void *tmp = *a;
 
-    void *data1 = VectorGetAccessToElement(vector, index1);
-    void *data2 = VectorGetAccessToElement(vector, index2);
+	*a = *b;
+	*b = tmp;
+}
 
-    size_t temp_data = 0;
-    temp_data = *(size_t *)data1;
-    *(size_t *)data1 = *(size_t *)data2;
-    *(size_t *)data2 = temp_data;
+/* a has higher priority than b */
+static int IsBefore(const heap_ty *heap, size_t a, size_t b)
+{
+	return 0 < heap->compare(GetData(heap, a), GetData(heap, b));
+}
+
+static void HeapifyUp(heap_ty *heap, size_t index)
+{
+	while (0 < index && IsBefore(heap, index, PARENT(index)))
+	{
+		Swap(heap, index, PARENT(index));
+		index = PARENT(index);
+	}
 }
 
 static void HeapifyDown(heap_ty *heap, size_t index)
 {
+	size_t size = VectorSize(heap->vector);
 
-    dynamic_vector_ty *vector = heap->vector;
-    size_t last_index = VectorSize(vector) - 1;
-    compare_ty cmp = heap->heap_cmp;
-    void *right = NULL;
-    void *left = NULL;
-    void *data_to_move = NULL;
+	for (;;)
+	{
+		size_t best = index;
 
-    assert(NULL != heap);
+		if (LEFT(index) < size && IsBefore(heap, LEFT(index), best))
+		{
+			best = LEFT(index);
+		}
+		if (RIGHT(index) < size && IsBefore(heap, RIGHT(index), best))
+		{
+			best = RIGHT(index);
+		}
+		if (best == index)
+		{
+			return;
+		}
 
-    data_to_move = VectorGetAccessToElement(vector, index);
-    right = VectorGetAccessToElement(vector, RIGHT(index));
-    left = VectorGetAccessToElement(vector, LEFT(index));
-
-    while ((-1 == cmp(data_to_move, right)) || (-1 == cmp(data_to_move, left)))
-    {
-
-        if (1 == cmp(left, right))
-        {
-            VectorSwap(vector, index, LEFT(index));
-            PrintHeap(heap);
-            index = LEFT(index);
-
-        }
-        else
-        {
-            printf("LEFT(index) = %d",LEFT(index));
-            printf("RIGHT(index) = %d",RIGHT(index));
-            printf("index = %d",index);
-
-        }
-    }
-
-    /* while (RIGHT(index) <= last_index)
-    {
-        right = VectorGetAccessToElement(vector, RIGHT(index));
-        left = VectorGetAccessToElement(vector, LEFT(index));
-
-        if (0 == cmp(data_to_move, left) || 0 == cmp(data_to_move, right))
-        {
-            if (1 == cmp(right, left))
-            {
-                VectorSwap(vector, index, RIGHT(index));
-                index = RIGHT(index);
-            }
-            else
-            {
-                VectorSwap(vector, index, LEFT(index));
-                index = LEFT(index);
-            }
-        }
-        else
-        {
-            return;
-        }
-
-        data_to_move = VectorGetAccessToElement(vector, index);
-    } */
+		Swap(heap, index, best);
+		index = best;
+	}
 }
 
-static void HeapifyUp(heap_ty *heap, void *data)
+/* move the last element into index, drop the last slot and restore order */
+static void RemoveAt(heap_ty *heap, size_t index)
 {
+	size_t last = VectorSize(heap->vector) - 1;
 
-    dynamic_vector_ty *vector = heap->vector;
+	if (index != last)
+	{
+		Swap(heap, index, last);
+	}
+	VectorPopBack(heap->vector);
 
-    size_t index = VectorSize(vector) - 1;
-    compare_ty cmp = heap->heap_cmp;
-    void *cmp_data = NULL;
-
-    assert(NULL != heap);
-    assert(NULL != data);
-
-    cmp_data = VectorGetAccessToElement(vector, PARRENT(index));
-
-    while (0 < cmp(data, cmp_data)) /*if to push > parent do swap*/
-    {
-        VectorSwap(vector, index, PARRENT(index));
-
-        index = PARRENT(index);
-
-        if (0 == index)
-        {
-            return;
-        }
-
-        cmp_data = VectorGetAccessToElement(vector, PARRENT(index));
-    }
+	if (index < last)
+	{
+		HeapifyDown(heap, index);
+		HeapifyUp(heap, index);
+	}
 }
 
-/****************************** Create ****************************/
+/****************************** API ******************************/
 
 heap_ty *HEAPCreate(compare_ty compare)
 {
-    heap_ty *heap = NULL;
+	heap_ty *heap = NULL;
 
-    assert(NULL != compare);
+	assert(NULL != compare);
 
-    heap = (heap_ty *)malloc(sizeof(heap_ty));
-    if (NULL == heap)
-    {
-        return NULL;
-    }
+	heap = (heap_ty *)malloc(sizeof(heap_ty));
+	if (NULL == heap)
+	{
+		return NULL;
+	}
 
-    heap->vector = VectorCreate(CAPACITY, sizeof(size_t));
-    if (NULL == heap->vector)
-    {
-        free(heap);
-        return NULL;
-    }
+	heap->vector = VectorCreate(INITIAL_CAPACITY, sizeof(void *));
+	if (NULL == heap->vector)
+	{
+		free(heap);
+		return NULL;
+	}
 
-    heap->heap_cmp = compare;
+	heap->compare = compare;
 
-    return heap;
+	return heap;
 }
-
-/****************************** Destroy ****************************/
 
 void HEAPDestroy(heap_ty *heap)
 {
-    assert(NULL != heap);
-    assert(NULL != heap->vector);
+	if (NULL == heap)
+	{
+		return;
+	}
 
-    VectorDestroy(heap->vector);
-    heap->vector = NULL;
-    heap->heap_cmp = NULL;
-
-    free(heap);
+	VectorDestroy(heap->vector);
+	free(heap);
 }
-
-/****************************** Push ********************************/
 
 int HEAPPush(heap_ty *heap, void *to_push)
 {
-    assert(NULL != heap);
-    assert(NULL != to_push);
+	assert(NULL != heap);
 
-    if (1 == VectorPushBack(heap->vector, to_push))
-    {
-        return 1;
-    }
-    if (1 == HEAPSize(heap))
-    {
-        return 0;
-    }
+	if (0 != VectorPushBack(heap->vector, &to_push))
+	{
+		return 1;
+	}
 
-    HeapifyUp(heap, to_push);
-    return 0;
+	HeapifyUp(heap, VectorSize(heap->vector) - 1);
+
+	return 0;
 }
-
-/****************************** Pop ********************************/
 
 void HEAPPop(heap_ty *heap)
 {
-    size_t index = 0;
+	assert(NULL != heap);
 
-    assert(NULL != heap);
+	if (HEAPIsEmpty(heap))
+	{
+		return;
+	}
 
-    index = VectorSize(heap->vector) - 1;
-
-    VectorSwap(heap->vector, index, 0);
-
-    VectorPopBack(heap->vector);
-
-    printf("after popBack\n");
-
-    PrintHeap(heap);
-
-    HeapifyDown(heap, 0);
-
-    printf("after HeapifyDown function\n");
-
-    PrintHeap(heap);
+	RemoveAt(heap, 0);
 }
-
-/****************************** Peek ********************************/
 
 void *HEAPPeek(heap_ty *heap)
 {
-    assert(NULL != heap);
+	assert(NULL != heap);
 
-    if (1 == HEAPIsEmpty(heap))
-    {
-        return (NULL);
-    }
+	if (HEAPIsEmpty(heap))
+	{
+		return NULL;
+	}
 
-    return VectorGetAccessToElement(heap->vector, 0);
+	return GetData(heap, 0);
 }
-/****************************** Size ********************************/
 
 size_t HEAPSize(const heap_ty *heap)
 {
-    assert(NULL != heap);
+	assert(NULL != heap);
 
-    return VectorSize(heap->vector);
+	return VectorSize(heap->vector);
 }
-/****************************** Is Empty ********************************/
 
 int HEAPIsEmpty(const heap_ty *heap)
 {
-    assert(NULL != heap);
+	assert(NULL != heap);
 
-    return VectorIsEmpty(heap->vector);
+	return VectorIsEmpty(heap->vector);
 }
 
-/****************************** Remove ********************************/
-
-void *HEAPRemove(heap_ty *heap, void *to_remove, int (*is_match)(const void *data, const void *to_remove))
+void *HEAPRemove(heap_ty *heap, void *to_remove,
+				 int (*is_match)(const void *data, const void *to_remove))
 {
-    void *data = NULL;
-    void *last_index = NULL;
-    size_t index = 0;
-    size_t size = 0;
-    dynamic_vector_ty *vector = NULL;
+	size_t size = 0;
+	size_t i = 0;
 
-    assert(NULL != heap);
-    assert(NULL != is_match);
+	assert(NULL != heap);
+	assert(NULL != is_match);
 
-    vector = heap->vector;
+	size = HEAPSize(heap);
+	for (i = 0; i < size; ++i)
+	{
+		void *data = GetData(heap, i);
 
-    size = VectorSize(vector);
+		if (is_match(data, to_remove))
+		{
+			RemoveAt(heap, i);
+			return data;
+		}
+	}
 
-    last_index = (size_t *)VectorGetAccessToElement(vector, size - 1);
-
-    while (index < size)
-    {
-        data = VectorGetAccessToElement(vector, index);
-
-        if (1 == is_match(data, to_remove))
-        {
-            break;
-        }
-        ++index;
-    }
-
-    if (index == size)
-    {
-        return (NULL);
-    }
-
-    SwapMem(data, last_index, sizeof(size_t));
-
-    VectorPopBack(vector);
-
-    HeapifyDown(heap, index);
-
-    return to_remove;
-}
-
-/****************************** Print Heap ********************************/
-
-void PrintHeap(heap_ty *heap)
-{
-    size_t arr_size = HEAPSize(heap);
-    size_t i = 0;
-    void *data = NULL;
-
-    assert(arr_size != 0);
-
-    for (i = 0; i < arr_size; i++)
-    {
-        data = VectorGetAccessToElement(heap->vector, i);
-        printf("index [%lu] = %d\n", i, *(int *)((size_t *)data));
-    }
-}
-
-void PrintHeapTree(heap_ty *heap)
-{
-    size_t arr_size = HEAPSize(heap);
-    size_t i, j = 0;
-    void *data = NULL;
-    size_t spase = arr_size;
-    size_t count = arr_size - spase;
-
-    for (i = 0; i < arr_size; i++)
-    {
-        data = VectorGetAccessToElement(heap->vector, i);
-
-        for (j = 0; j < spase; j++)
-        {
-            printf(" ");
-            spase /= 2;
-        }
-        printf("%d\n", *(int *)((size_t *)data));
-    }
+	return NULL;
 }

@@ -1,84 +1,60 @@
-
-#include <stddef.h> /*size_t*/
-#include <stdio.h>
-#include <assert.h>
 #include "heap.h"
+#include "../tests/test_utils.h"
 
-#define SIZE 12
-
-int IntCmpFuncTest(const void *data1, const void *data2)
+/* max-heap on ints */
+static int IntCmp(const void *a, const void *b)
 {
-    int x = 0;
+	int x = *(const int *)a;
+	int y = *(const int *)b;
 
-    assert(data1);
-    assert(data2);
- 
-    x =  *(int *)data1 - *(int *)data2; 
-
-    if (x > 0) 
-    {
-        return 1;
-    }
-    else if (x < 0)
-    {
-        return -1;
-    }
-    return x;
+	return (x > y) - (x < y);
 }
 
-int IntIsMatch(const void *data, const void *param)
+static int IntIsMatch(const void *data, const void *param)
 {
-    assert(data);
-    assert(param);
-
-    return (*(int *)data == *(int *)param);
+	return *(const int *)data == *(const int *)param;
 }
 
-/************************TEST*******************/
-void Test1();
-void Test2()
+int main(void)
 {
-    int x1 = 10;
-    int x2 = 10;
+	int values[] = {10, 6, 20, 65, 80, 5, 3, 100, 300, 201, 12, 2, 7, 7};
+	size_t n = sizeof(values) / sizeof(values[0]);
+	heap_ty *heap = HEAPCreate(IntCmp);
+	int last = 0;
+	int key = 0;
+	size_t i = 0;
 
-    heap_ty *heap = HEAPCreate(IntCmpFuncTest);
-    HEAPPush(heap, &x1);
-    HEAPPush(heap, &x2);
-}
+	CHECK(NULL != heap);
+	CHECK(HEAPIsEmpty(heap));
+	CHECK(NULL == HEAPPeek(heap));
+	HEAPPop(heap); /* no-op on empty heap */
 
-int main()
-{
-    Test1();
-    Test2();
+	for (i = 0; i < n; ++i)
+	{
+		CHECK(0 == HEAPPush(heap, &values[i]));
+	}
+	CHECK(n == HEAPSize(heap));
+	CHECK(300 == *(int *)HEAPPeek(heap));
 
-    return 0;
-}
+	key = 65;
+	CHECK(&values[3] == HEAPRemove(heap, &key, IntIsMatch));
+	key = 999;
+	CHECK(NULL == HEAPRemove(heap, &key, IntIsMatch));
+	CHECK(n - 1 == HEAPSize(heap));
 
-void Test1()
-{
-    int arr[SIZE + 1] = {10, 6, 20, 65, 80, 5, 3, 100, 300, 201, 12, 2, 7};
-    int arr1[3] = {1, 10, 20};
+	/* pops come out in non-increasing order */
+	last = *(int *)HEAPPeek(heap);
+	while (!HEAPIsEmpty(heap))
+	{
+		int top = *(int *)HEAPPeek(heap);
 
-    int peek, pop, i = 0;
-    int is_heap_empty = 0;
-    void *remove = 0;
+		CHECK(top <= last);
+		CHECK(65 != top);
+		last = top;
+		HEAPPop(heap);
+	}
+	CHECK(2 == last);
 
-    heap_ty *heap = HEAPCreate(IntCmpFuncTest);
-
-    HEAPIsEmpty(heap) ? printf("heap is empty\n") : printf("heap is not empty\n");
-
-    for (i = 0; i < SIZE; i++)
-    {
-        HEAPPush(heap, &arr[i]);
-    }
-
-    PrintHeap(heap);
-
-    for (i = 0; i < SIZE; i++)
-    {
-        HEAPPop(heap);
-        printf("------------------------------------------\n");
-    }
-
-    HEAPDestroy(heap);
+	HEAPDestroy(heap);
+	return TEST_RESULT("heap");
 }

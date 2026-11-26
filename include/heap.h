@@ -12,13 +12,12 @@
 
 #include <stddef.h> /*size_t*/
 
-/* max heap - root is maximum*/
+/* The root is the element with the highest priority. */
 typedef struct heap heap_ty;
 
 /*
-  if data1 > data2 return positive integer;
-  if data2 > data1 return negative integer;
-  if data1 == data2 return 0;
+  Return a positive integer if data1 should come before data2,
+  a negative integer if data2 should come first, and 0 if equal.
 */
 typedef int(*compare_ty)(const void *data1,const void *data2);
 
@@ -31,7 +30,7 @@ heap_ty *HEAPCreate(compare_ty compare);
 
 /***********************************************************
  * --- HEAPDestroy ---
- * Function frees all the alements in the tree.
+ * Frees the heap. The stored user data is not freed.
  ***********************************************************/
 void HEAPDestroy(heap_ty* heap);
 
@@ -67,11 +66,11 @@ int HEAPIsEmpty(const heap_ty *heap);
 
 /***********************************************************
  * --- HEAPRemove ---
- * Function returns pointer to *to_remove
+ * Removes the first element for which is_match(data, to_remove) is
+ * true and returns it, or NULL if there is no match.
  ***********************************************************/
 void* HEAPRemove(heap_ty *heap, void *to_remove, int (*is_match)(const void *data, const void *to_remove));
 
 
-void PrintHeap(heap_ty *heap);
 
 #endif /* __HEAP_TREE_H__ */

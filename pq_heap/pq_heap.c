@@ -1,4 +1,3 @@
-#include <stdio.h>  /*printf */
 #include <stdlib.h> /*malloc*/
 #include <assert.h> /* assert */
 #include "heap.h"   /*heap */
@@ -36,7 +35,10 @@ pqueue_ty *PQCreate(compare_ty cmp)
 
 void PQDestroy(pqueue_ty *pq)
 {
-    assert(pq != NULL);
+    if (NULL == pq)
+    {
+        return;
+    }
 
     HEAPDestroy(pq->heap);
 
@@ -54,7 +56,10 @@ void *PQDeQueue(pqueue_ty *pq)
 
     heap = pq->heap;
     data = HEAPPeek(heap);
-    HEAPPop(heap);
+    if (NULL != data)
+    {
+        HEAPPop(heap);
+    }
 
     return data;
 }
@@ -107,6 +112,7 @@ size_t PQSize(const pqueue_ty *pq)
 void *PQErase(pqueue_ty *pq, int (*is_match)(const void *data, const void *param), void *param)
 {
     assert(pq);
+    assert(is_match);
 
     return HEAPRemove(pq->heap, param, is_match);
 }

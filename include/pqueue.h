@@ -21,7 +21,6 @@ struct pqueue
 
 typedef struct pqueue pqueue_ty;
 
-typedef int (*pq_is_match_ty)( void *data,  void *param);
 
 /*Creates Queue - return pointer to Que */
 pqueue_ty *PQCreate(int (*cmp)(const void *, const void *));
