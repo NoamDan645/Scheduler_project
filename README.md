@@ -7,13 +7,14 @@ This project implements a **Task Scheduler** system in C. It provides a mechanis
 
 ```
 Scheduler_project/
-├── dynamic_vector/       - Dynamic array implementation
-├── heap/                - Min-heap data structure
+├── dynamic_vector/     - Dynamic array implementation
+├── heap/               - Binary heap (priority by next run time)
 ├── include/            - Header files for all modules
 ├── pq_heap/            - Priority queue implementation using heap
 ├── scheduler_main/     - Main scheduler implementation and tests
 ├── task/               - Task/tasker module
-└── uid/                - Unique ID generator for tasks
+├── uid/                - Unique ID generator for tasks
+└── tests/              - Shared test helpers
 ```
 
 ## Core Components
@@ -62,7 +63,7 @@ Generates unique IDs for each scheduled task, allowing individual task managemen
 
 int my_task(void *param) {
     printf("Task executed!\n");
-    return 0;  // return 0 for success, 1 to remove task
+    return 0;  // 0 keeps the task scheduled, non-zero removes it
 }
 
 int main() {
@@ -71,7 +72,7 @@ int main() {
     // Add a task to run every 5 seconds
     uid_ty task_id = SchedulerAdd(scheduler, 5, my_task, NULL);
     
-    // Run the scheduler
+    // Run until SchedulerStop() is called or no tasks are left
     SchedulerRun(scheduler);
     
     // Cleanup
@@ -81,24 +82,18 @@ int main() {
 }
 ```
 
-## Building the Project
+## Building and Testing
 
-Each module has its own Makefile. To compile:
+Everything builds from the project root with one Makefile (GCC or Clang, C99, `-Wall -Wextra -Werror`):
 
 ```bash
-cd scheduler_main
-make
+make            # build build/libscheduler.a and the test programs
+make test       # run all module tests
+make sanitize   # rebuild and run the tests with AddressSanitizer + UBSan
+make clean
 ```
 
-## Testing
-
-Each module includes test files:
-- `scheduler_test.c` - Tests for the main scheduler
-- `tasker_test.c` - Tests for tasks
-- `pq_heap_test.c` - Tests for priority queue
-- `heap_test.c` - Tests for heap data structure
-- `dynamic_vector_test.c` - Tests for dynamic vector
-- `uid_test.c` - Tests for UID generation
+Every module has its own test (`*_test.c`). The scheduler test runs real tasks with 1-2 second intervals, so it takes a few seconds. CI builds and runs the tests with GCC and Clang, plus a run under AddressSanitizer and UBSan, on every push and pull request.
 
 ## Data Structures Used
 

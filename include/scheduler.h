@@ -16,16 +16,15 @@
 #include "uid.h" /* uid_ty */
 #include "tasker.h"
 
-/* task_prt_ty return 0 for success, or 1 for failiure */
+/* A task function returns 0 to stay scheduled, or non-zero to be removed. */
 typedef struct scheduler scheduler_ty;
 
-typedef int (*func_ty)(void *param);
 
 /***********************************************************************************
 *--SchedulerCreate-- Create scheduler - return pointer to scheduler. 
 *if fail return NULL
 **************************************************************************************/
-scheduler_ty *SchedulerCreate();
+scheduler_ty *SchedulerCreate(void);
 
 /*************************************************************************************
 * --SchedulerAdd-- Add task to the scheduler return uid to this task. 
@@ -35,7 +34,8 @@ scheduler_ty *SchedulerCreate();
 uid_ty SchedulerAdd(scheduler_ty *scheduler, size_t interval_in_sec, task_ptr_ty task_func, void* param);
 
 /*************************************************************************************
-*--SchedulerRun-- Run task. return 0 for success, 1 for failiure
+*--SchedulerRun-- Runs tasks until stopped or until no tasks are left.
+* Returns 0 on success, 1 on failure
 **************************************************************************************/
 int SchedulerRun(scheduler_ty *scheduler);
 

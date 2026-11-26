@@ -1,71 +1,148 @@
+/* Runs real tasks with 1-2 second intervals, so it takes a few seconds. */
+#include <string.h>
 
-#include <stdio.h>
-#include <assert.h>
-#include <stddef.h> 
 #include "scheduler.h"
+#include "../tests/test_utils.h"
 
+#define LOG_SIZE 32
 
-typedef struct{
+static char g_log[LOG_SIZE];
+static size_t g_log_len = 0;
+
+typedef struct
+{
 	scheduler_ty *scheduler;
 	uid_ty uid;
-}remove_iter_ty;
+	char name;
+	int runs_left;
+} ctx_ty;
 
-int Action_1(void *param);
-int Action_stop(void *param);
-int Action_remove(void *param);
-
-/* void Consumer(scheduler_ty *scheduler)
+static void Log(char c)
 {
- 	assert(scheduler);
-	SchedulerRun(scheduler);	
-} */
-int main()
+	if (g_log_len < LOG_SIZE - 1)
+	{
+		g_log[g_log_len++] = c;
+	}
+}
+
+static void ResetLog(void)
 {
-	scheduler_ty *scheduler = SchedulerCreate();
-	uid_ty uid_1 = {0,0,0}, uid_2 = {0,0,0}, uid_3 = {0,0,0}, uid_4 = {0,0,0}, uid_5 = {0,0,0};
-	remove_iter_ty iter = {NULL,{0,0,0}};
-	printf("test");
-	assert(scheduler); 	
- 
- 	uid_1 = SchedulerAdd(scheduler, 1, Action_1, "---------------------> action 1"); 
-	 uid_2 = SchedulerAdd(scheduler, 2, Action_1, "---------------------> action 2");
-	uid_3 = SchedulerAdd(scheduler, 4, Action_1, "---------------------> action 3");
-	uid_4 = SchedulerAdd(scheduler, 10, Action_stop, scheduler);  
+	g_log_len = 0;
+	memset(g_log, 0, sizeof(g_log));
+}
 
-/* 	iter.scheduler = scheduler;
-	iter.uid = uid_3;
-	uid_5 = SchedulerAdd(scheduler, 12, Action_remove, &iter); */
+static size_t CountInLog(char c)
+{
+	size_t count = 0;
+	size_t i = 0;
 
-	/* printf("size of remove_iter_ty = %lu\n", sizeof(remove_iter_ty));
-	Consumer(scheduler);
+	for (i = 0; i < g_log_len; ++i)
+	{
+		count += (g_log[i] == c);
+	}
 
-	SchedulerDestroy(scheduler); */
+	return count;
+}
 
+/* runs `runs_left` times, then asks to be removed */
+static int Countdown(void *param)
+{
+	ctx_ty *ctx = (ctx_ty *)param;
+
+	Log(ctx->name);
+	return 0 == --ctx->runs_left;
+}
+
+static int StopScheduler(void *param)
+{
+	Log('S');
+	SchedulerStop((scheduler_ty *)param);
+	return 1;
+}
+
+static int RemoveSelf(void *param)
+{
+	ctx_ty *ctx = (ctx_ty *)param;
+
+	Log(ctx->name);
+	SchedulerRemove(ctx->scheduler, ctx->uid);
 	return 0;
 }
 
- 
-int Action_1(void *param)
+static void TestBasics(void)
 {
-	printf ("%s\n", (char *)param);
-	return 0;
-}
-/*
-int Action_stop(void *param)
-{
-    static size_t count = 0;
-    if(1 >= ++count)
-    {
-        SchedulerStop((scheduler_ty *)param);
-    }
-	return 0;
+	scheduler_ty *s = SchedulerCreate();
+	ctx_ty a = {NULL, {0, 0, 0}, 'a', 1};
+	uid_ty uid1, uid2;
+
+	CHECK(NULL != s);
+	CHECK(SchedulerIsEmpty(s));
+
+	uid1 = SchedulerAdd(s, 5, Countdown, &a);
+	uid2 = SchedulerAdd(s, 5, Countdown, &a);
+	CHECK(!UIDIsSame(uid1, UID_INVALID));
+	CHECK(!UIDIsSame(uid1, uid2));
+	CHECK(2 == SchedulerSize(s));
+
+	SchedulerRemove(s, uid1);
+	CHECK(1 == SchedulerSize(s));
+	SchedulerRemove(s, uid1); /* removing twice is harmless */
+	CHECK(1 == SchedulerSize(s));
+
+	SchedulerClear(s);
+	CHECK(SchedulerIsEmpty(s));
+
+	SchedulerDestroy(s);
 }
 
-int Action_remove(void *param)
-{Action_1
-	remove_iter_ty iter = *(remove_iter_ty *)param;	
-	
-	SchedulerRemove(iter.scheduler, iter.uid);
-	
-	return 0;
-} */
+static void TestRunAndRemoval(void)
+{
+	scheduler_ty *s = SchedulerCreate();
+	ctx_ty a = {NULL, {0, 0, 0}, 'a', 3}; /* every 1s, 3 times */
+	ctx_ty b = {NULL, {0, 0, 0}, 'b', 1}; /* once, after 2s */
+	ctx_ty r = {NULL, {0, 0, 0}, 'r', 0}; /* removes itself */
+
+	ResetLog();
+
+	r.scheduler = s;
+	SchedulerAdd(s, 1, Countdown, &a);
+	SchedulerAdd(s, 2, Countdown, &b);
+	r.uid = SchedulerAdd(s, 1, RemoveSelf, &r);
+
+	CHECK(0 == SchedulerRun(s)); /* returns once no tasks are left */
+	CHECK(SchedulerIsEmpty(s));
+	CHECK(0 == a.runs_left);
+	CHECK(0 == b.runs_left);
+	CHECK(3 == CountInLog('a'));
+	CHECK(1 == CountInLog('b'));
+	CHECK(1 == CountInLog('r'));
+
+	SchedulerDestroy(s);
+}
+
+static void TestStop(void)
+{
+	scheduler_ty *s = SchedulerCreate();
+	ctx_ty a = {NULL, {0, 0, 0}, 'a', 100};
+
+	ResetLog();
+
+	SchedulerAdd(s, 1, Countdown, &a);
+	SchedulerAdd(s, 2, StopScheduler, s);
+
+	CHECK(0 == SchedulerRun(s));
+	CHECK(1 == SchedulerSize(s)); /* 'a' is still scheduled */
+	CHECK(1 == CountInLog('S'));
+	CHECK('S' == g_log[g_log_len - 1]);
+
+	SchedulerDestroy(s); /* frees the remaining task */
+}
+
+int main(void)
+{
+	TestBasics();
+	TestRunAndRemoval();
+	TestStop();
+
+	return TEST_RESULT("scheduler");
+}
