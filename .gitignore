@@ -1,14 +1,11 @@
+# Build outputs
+*.o
 *.out
-!/**/
+*.a
+*.so
 
-!*.c
-!.gitignore
-![mM]ake*
-!*.h
-!*.cpp
-!*.hpp
-!*.md
-!*.mak
-!*.json
-!*.html
-
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
